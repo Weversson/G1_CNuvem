@@ -1,0 +1,46 @@
+x-app: &app
+  build: ./app
+  image: avaliacao-mensagens:local
+  restart: unless-stopped
+  volumes:
+    - mensagens:/data
+  networks:
+    - mensagens_net
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/messages', timeout=2).read()"]
+    interval: 5s
+    timeout: 3s
+    retries: 10
+    start_period: 5s
+
+services:
+  app1:
+    <<: *app
+    environment:
+      APP_NAME: app1
+      PEERS: http://app2:5000,http://app3:5000
+    ports:
+      - "127.0.0.1:5001:5000"
+
+  app2:
+    <<: *app
+    environment:
+      APP_NAME: app2
+      PEERS: http://app1:5000,http://app3:5000
+    ports:
+      - "127.0.0.1:5002:5000"
+
+  app3:
+    <<: *app
+    environment:
+      APP_NAME: app3
+      PEERS: http://app1:5000,http://app2:5000
+    ports:
+      - "127.0.0.1:5003:5000"
+
+volumes:
+  mensagens:
+
+networks:
+  mensagens_net:
+    driver: bridge
